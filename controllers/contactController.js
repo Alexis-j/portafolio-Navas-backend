@@ -8,7 +8,7 @@ export const sendContactEmail = async (req, res) => {
   }
 
   try {
-    const transporter = createTransporter(); 
+    const transporter = createTransporter();
 
     await transporter.sendMail({
       from: `"Portafolio Web" <${process.env.EMAIL_USER}>`,
