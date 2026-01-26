@@ -1,15 +1,26 @@
-import { deleteFile } from "../utils/deleteFiles.js";
-import fs from "fs";
-import path from "path";
+import cloudinary from "../utils/cloudinary.js"; // Configuración Cloudinary
 import pool from "../config/db.js";
 
-// Get all reviews
+const uploadFile = async (file) => {
+  if (!file) return null;
+  const result = await cloudinary.uploader.upload(file.path, {
+    folder: "reviews",
+  });
+  return result.secure_url;
+};
+
+const deleteCloudFile = async (url) => {
+  if (!url) return;
+  const parts = url.split("/");
+  const filename = parts[parts.length - 1].split(".")[0]; // nombre sin extensión
+  await cloudinary.uploader.destroy(`reviews/${filename}`);
+};
+
 export const getReviews = async (req, res) => {
   try {
     const result = await pool.query(
       "SELECT * FROM reviews ORDER BY created_at DESC"
     );
-
     res.json(result.rows);
   } catch (err) {
     console.error("Error getting reviews:", err);
@@ -17,12 +28,11 @@ export const getReviews = async (req, res) => {
   }
 };
 
-// Create a new review
 export const createReview = async (req, res) => {
   const { client_name, review_text, link } = req.body;
-  const client_photo = req.file ? req.file.filename : null; // multer
-
   try {
+    const client_photo = await uploadFile(req.file);
+
     const result = await pool.query(
       `INSERT INTO reviews (client_name, review_text, client_photo, link)
        VALUES ($1, $2, $3, $4)
@@ -40,7 +50,6 @@ export const createReview = async (req, res) => {
   }
 };
 
-// Update a review
 export const updateReview = async (req, res) => {
   const { id } = req.params;
 
@@ -63,8 +72,8 @@ export const updateReview = async (req, res) => {
     let client_photo = existing.client_photo;
 
     if (req.file) {
-      deleteFile(existing.client_photo);
-      client_photo = req.file.filename;
+      await deleteCloudFile(existing.client_photo);
+      client_photo = await uploadFile(req.file);
     }
 
     const updated = await pool.query(
@@ -82,7 +91,6 @@ export const updateReview = async (req, res) => {
   }
 };
 
-// Delete a review
 export const deleteReview = async (req, res) => {
   const { id } = req.params;
 
@@ -93,8 +101,7 @@ export const deleteReview = async (req, res) => {
     );
 
     const photo = result.rows[0]?.client_photo;
-
-    deleteFile(photo);
+    await deleteCloudFile(photo);
 
     await pool.query("DELETE FROM reviews WHERE id = $1", [id]);
 

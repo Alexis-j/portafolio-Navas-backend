@@ -1,15 +1,11 @@
 import { GalleryModel } from "../models/galleryModel.js";
-import { deleteFile } from "../utils/deleteFiles.js";
-
-/* =========================
-  CONTROLLER
-========================= */
+import cloudinary from "../utils/cloudinary.js"; // Archivo que exporta cloudinary.config
 
 export const GalleryController = {
 
   /* ===== PÚBLICO ===== */
 
-    getCategories: async (req, res) => {
+  getCategories: async (req, res) => {
     try {
       const categories = await GalleryModel.getCategories();
       res.json(categories);
@@ -41,15 +37,9 @@ export const GalleryController = {
   setCategoryCover: async (req, res) => {
     try {
       const { photoId } = req.body;
-      if (!photoId) {
-        return res.status(400).json({ error: "photoId required" });
-      }
+      if (!photoId) return res.status(400).json({ error: "photoId required" });
 
-      const category = await GalleryModel.setCategoryCover(
-        req.params.id,
-        photoId
-      );
-
+      const category = await GalleryModel.setCategoryCover(req.params.id, photoId);
       res.json(category);
     } catch (err) {
       res.status(500).json({ error: "Error setting cover" });
@@ -57,40 +47,38 @@ export const GalleryController = {
   },
 
   uploadPhoto: async (req, res) => {
-  try {
-    const { categoryIds } = req.body; // <-- traer categorías del form
-    if (!req.file) {
-      return res.status(400).json({ error: "Image required" });
-    }
+    try {
+      const { categoryIds } = req.body;
+      if (!req.file) return res.status(400).json({ error: "Image required" });
 
-    // Crear foto
-    const photo = await GalleryModel.createPhoto(`/uploads/${req.file.filename}`);
+      // SUBIR A CLOUDINARY
+      const result = await cloudinary.uploader.upload(req.file.path, {
+        folder: "gallery_photos",
+      });
 
-    // Asignar categorías si hay
-    if (categoryIds) {
-      const categories = JSON.parse(categoryIds);
-      for (const categoryId of categories) {
-        await GalleryModel.assignPhotoToCategory(photo.id, categoryId);
+      const photo = await GalleryModel.createPhoto(result.secure_url);
+
+      // Asignar categorías si hay
+      if (categoryIds) {
+        const categories = JSON.parse(categoryIds);
+        for (const categoryId of categories) {
+          await GalleryModel.assignPhotoToCategory(photo.id, categoryId);
+        }
       }
-    }
 
-    res.status(201).json(photo);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error uploading photo" });
-  }
-},
+      res.status(201).json(photo);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error uploading photo" });
+    }
+  },
 
   assignPhotoToCategory: async (req, res) => {
     try {
       const { photoId } = req.body;
       const { categoryId } = req.params;
 
-      const relation = await GalleryModel.assignPhotoToCategory(
-        photoId,
-        categoryId
-      );
-
+      const relation = await GalleryModel.assignPhotoToCategory(photoId, categoryId);
       res.status(201).json(relation);
     } catch (err) {
       res.status(500).json({ error: "Error assigning photo" });
@@ -102,28 +90,30 @@ export const GalleryController = {
       const photo = await GalleryModel.getPhotoById(req.params.id);
       if (!photo) return res.status(404).json({ error: "Not found" });
 
+      // Extraer public_id de Cloudinary
+      const publicId = photo.image_url.split("/").pop().split(".")[0];
+      await cloudinary.uploader.destroy(`gallery_photos/${publicId}`);
+
       await GalleryModel.deletePhoto(req.params.id);
 
-      deleteFile(photo.image_url);
-      res.json({ message: "Photo deleted" });
+      res.json({ message: "Photo deleted from Cloudinary ✅" });
     } catch (err) {
+      console.error(err);
       res.status(500).json({ error: "Error deleting photo" });
     }
   },
+
   removePhotoFromCategory: async (req, res) => {
-  try {
-    const { photoId, categoryId } = req.params;
-
-    const removed = await GalleryModel.removePhotoFromCategory(photoId, categoryId);
-    if (!removed) return res.status(404).json({ error: "Relation not found" });
-
-    res.json({ message: "Photo removed from category" });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error removing photo from category" });
-  }
-},
-
+    try {
+      const { photoId, categoryId } = req.params;
+      const removed = await GalleryModel.removePhotoFromCategory(photoId, categoryId);
+      if (!removed) return res.status(404).json({ error: "Relation not found" });
+      res.json({ message: "Photo removed from category" });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error removing photo from category" });
+    }
+  },
 
   getAllPhotosForDashboard: async (req, res) => {
     try {
@@ -142,15 +132,17 @@ export const GalleryController = {
       res.status(500).json({ error: "Error toggling photo" });
     }
   },
+
   getCategoryEditor: async (req, res) => {
-  try {
-    const data = await GalleryModel.getCategoryEditorData(req.params.id);
-    res.json(data);
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: "Error loading category editor" });
-  }
-},
+    try {
+      const data = await GalleryModel.getCategoryEditorData(req.params.id);
+      res.json(data);
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: "Error loading category editor" });
+    }
+  },
+
   updatePhotoOrder: async (req, res) => {
     try {
       const { categoryId } = req.params;
@@ -161,11 +153,7 @@ export const GalleryController = {
       }
 
       for (const item of orders) {
-        await GalleryModel.updatePhotoOrder(
-          categoryId,
-          item.photoId,
-          item.display_order
-        );
+        await GalleryModel.updatePhotoOrder(categoryId, item.photoId, item.display_order);
       }
 
       res.json({ success: true });
@@ -173,7 +161,5 @@ export const GalleryController = {
       console.error("❌ Error updating photo order:", err);
       res.status(500).json({ error: "Error updating photo order" });
     }
-  }
-
-
+  },
 };
