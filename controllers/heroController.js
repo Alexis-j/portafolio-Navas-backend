@@ -76,26 +76,33 @@ export const updateHero = async (req, res) => {
     console.log("Existing hero:", existing);
 
     const uploadAndReplace = async (field) => {
-      if (!req.files?.[field]?.[0]) return existing[field]; // nada que subir
+  if (!req.files?.[field]?.[0]) return existing[field]; // nada que subir
 
-      // Borrar imagen previa si existe
-      if (existing[field]) {
-        try {
-          const publicId = existing[field].split("/").pop().split(".")[0];
-          console.log(`Borrando ${field} en Cloudinary: hero_images/${publicId}`);
-          await cloudinary.uploader.destroy(`hero_images/${publicId}`);
-        } catch (err) {
-          console.warn(`No se pudo borrar ${field} de Cloudinary:`, err.message);
-        }
+  // Borrar imagen previa si existe
+  if (existing[field]) {
+    try {
+      const publicId = existing[field].split("/").pop().split(".")[0];
+      console.log(`Borrando ${field} en Cloudinary: hero_images/${publicId}`);
+      await cloudinary.uploader.destroy(`hero_images/${publicId}`);
+    } catch (err) {
+      console.warn(`No se pudo borrar ${field} de Cloudinary:`, err.message);
+    }
+  }
+
+  // Subir nueva imagen desde buffer
+  return new Promise((resolve, reject) => {
+    const stream = cloudinary.uploader.upload_stream(
+      { folder: "hero_images" },
+      (error, result) => {
+        if (error) return reject(error);
+        console.log(`Subida ${field} a Cloudinary:`, result.secure_url);
+        resolve(result.secure_url);
       }
+    );
+    stream.end(req.files[field][0].buffer);
+  });
+};
 
-      // Subir nueva imagen
-      const result = await cloudinary.uploader.upload(req.files[field][0].path, {
-        folder: "hero_images",
-      });
-      console.log(`Subida ${field} a Cloudinary:`, result.secure_url);
-      return result.secure_url;
-    };
 
     const image_light = await uploadAndReplace("image_light");
     const image_dark = await uploadAndReplace("image_dark");
