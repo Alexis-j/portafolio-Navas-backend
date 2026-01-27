@@ -1,5 +1,5 @@
 import { GalleryModel } from "../models/galleryModel.js";
-import cloudinary from "../utils/cloudinary.js"; // Archivo que exporta cloudinary.config
+import { cloudinary } from "../utils/cloudinary.js"; // Archivo que exporta cloudinary.config
 
 export const GalleryController = {
 

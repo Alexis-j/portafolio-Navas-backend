@@ -4,7 +4,7 @@ import {
   updateAboutDB
 } from "../models/about.js";
 
-import cloudinary from "../utils/cloudinary.js"; // tu configuración de Cloudinary
+import { cloudinary } from "../utils/cloudinary.js"; // tu configuración de Cloudinary
 
 /* ================= GET ================= */
 export const getAbout = async (req, res) => {

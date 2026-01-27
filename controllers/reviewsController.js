@@ -1,4 +1,4 @@
-import cloudinary from "../utils/cloudinary.js"; // Configuración Cloudinary
+import { cloudinary } from "../utils/cloudinary.js"; // Configuración Cloudinary
 import pool from "../config/db.js";
 
 const uploadFile = async (file) => {
