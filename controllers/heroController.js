@@ -170,6 +170,8 @@ export const deleteHero = async (req, res) => {
   }
 };
 
+console.log("Cloudinary cloud_name:", process.env.CLOUDINARY_CLOUD_NAME);
+
 /* ================= PATCH ================= */
 export const toggleHeroText = async (req, res) => {
   const { id } = req.params;

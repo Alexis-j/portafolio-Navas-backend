@@ -17,6 +17,9 @@ export const getAbout = async (req, res) => {
   }
 };
 
+console.log("Cloudinary cloud_name:", process.env.CLOUDINARY_CLOUD_NAME);
+
+
 /* ================= CREATE ================= */
 export const createAbout = async (req, res) => {
   const { titulo, descripcion } = req.body;
