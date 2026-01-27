@@ -7,7 +7,7 @@ import {
   updateHeroDB,
 } from "../models/hero.js";
 
-import cloudinary from "../utils/cloudinary.js";
+import cloudinary from "../utils/cloudinary.js"; // tu configuración de Cloudinary
 
 /* ================= GET ================= */
 export const getHero = async (req, res) => {
@@ -23,13 +23,12 @@ export const getHero = async (req, res) => {
 /* ================= POST ================= */
 export const postHero = async (req, res) => {
   try {
-    const { title, subtitle } = req.body;
+    console.log("POST /hero req.body:", req.body);
+    console.log("POST /hero req.files:", req.files);
 
-    const uploadFile = async (file) => {
+    const uploadFile = async (file, folder = "hero_images") => {
       if (!file) return null;
-      const result = await cloudinary.uploader.upload(file.path, {
-        folder: "hero_images",
-      });
+      const result = await cloudinary.uploader.upload(file.path, { folder });
       return result.secure_url;
     };
 
@@ -44,8 +43,8 @@ export const postHero = async (req, res) => {
       req.body?.show_text === "true" || req.body?.show_text === true;
 
     const hero = await createHeroDB(
-      title,
-      subtitle,
+      req.body.title,
+      req.body.subtitle,
       image_light,
       image_dark,
       image_mobile_light,
@@ -55,6 +54,7 @@ export const postHero = async (req, res) => {
       show_text
     );
 
+    console.log("Hero creado:", hero);
     res.json(hero);
   } catch (err) {
     console.error("Error in postHero:", err);
@@ -65,24 +65,36 @@ export const postHero = async (req, res) => {
 /* ================= PUT ================= */
 export const updateHero = async (req, res) => {
   const { id } = req.params;
-
   try {
+    console.log("PUT /hero/:id req.params:", req.params);
+    console.log("PUT /hero/:id req.body:", req.body);
+    console.log("PUT /hero/:id req.files:", req.files);
+
     const existing = await getHeroByIdDB(id);
     if (!existing) return res.status(404).json({ error: "Hero not found" });
 
+    console.log("Existing hero:", existing);
+
     const uploadAndReplace = async (field) => {
-      if (req.files?.[field]) {
-        // borrar de Cloudinary si existía
-        if (existing[field]) {
+      if (!req.files?.[field]?.[0]) return existing[field]; // nada que subir
+
+      // Borrar imagen previa si existe
+      if (existing[field]) {
+        try {
           const publicId = existing[field].split("/").pop().split(".")[0];
+          console.log(`Borrando ${field} en Cloudinary: hero_images/${publicId}`);
           await cloudinary.uploader.destroy(`hero_images/${publicId}`);
+        } catch (err) {
+          console.warn(`No se pudo borrar ${field} de Cloudinary:`, err.message);
         }
-        const result = await cloudinary.uploader.upload(req.files[field][0].path, {
-          folder: "hero_images",
-        });
-        return result.secure_url;
       }
-      return existing[field];
+
+      // Subir nueva imagen
+      const result = await cloudinary.uploader.upload(req.files[field][0].path, {
+        folder: "hero_images",
+      });
+      console.log(`Subida ${field} a Cloudinary:`, result.secure_url);
+      return result.secure_url;
     };
 
     const image_light = await uploadAndReplace("image_light");
@@ -112,6 +124,7 @@ export const updateHero = async (req, res) => {
       show_text
     );
 
+    console.log("Hero actualizado:", updated);
     res.json(updated);
   } catch (err) {
     console.error("Error in updateHero:", err);
@@ -122,15 +135,20 @@ export const updateHero = async (req, res) => {
 /* ================= DELETE ================= */
 export const deleteHero = async (req, res) => {
   const { id } = req.params;
-
   try {
+    console.log("DELETE /hero/:id req.params:", req.params);
+
     const existing = await getHeroByIdDB(id);
     if (!existing) return res.status(404).json({ error: "Hero not found" });
 
     const deleteFromCloud = async (field) => {
-      if (existing[field]) {
+      if (!existing[field]) return;
+      try {
         const publicId = existing[field].split("/").pop().split(".")[0];
+        console.log(`Borrando ${field} en Cloudinary: hero_images/${publicId}`);
         await cloudinary.uploader.destroy(`hero_images/${publicId}`);
+      } catch (err) {
+        console.warn(`No se pudo borrar ${field} de Cloudinary:`, err.message);
       }
     };
 
@@ -144,7 +162,7 @@ export const deleteHero = async (req, res) => {
     ].map(deleteFromCloud));
 
     await deleteHeroDB(id);
-
+    console.log("Hero eliminado:", id);
     res.json({ message: "Hero deleted successfully ✅" });
   } catch (err) {
     console.error("Error in deleteHero:", err);
@@ -155,9 +173,9 @@ export const deleteHero = async (req, res) => {
 /* ================= PATCH ================= */
 export const toggleHeroText = async (req, res) => {
   const { id } = req.params;
-
   try {
     const updated = await toggleHeroTextDB(id);
+    console.log("toggleHeroText:", updated);
     res.json(updated);
   } catch (err) {
     console.error("Error in toggleHeroText:", err);
