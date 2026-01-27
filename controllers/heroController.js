@@ -7,7 +7,7 @@ import {
   updateHeroDB,
 } from "../models/hero.js";
 
-import  { cloudinary } from "../utils/cloudinary.js"; // tu configuración de Cloudinary
+import cloudinary from "../utils/cloudinary.js";
 
 /* ================= GET ================= */
 export const getHero = async (req, res) => {

@@ -7,4 +7,5 @@ cloudinary.config({
   secure: true,
 });
 
+// Export default para que los controllers puedan importarlo directamente
 export default cloudinary;
