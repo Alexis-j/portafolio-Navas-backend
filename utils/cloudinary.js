@@ -10,3 +10,4 @@ cloudinary.v2.config({
 cloudinary.v2.api.ping()
   .then(() => console.log("✅ Cloudinary ok"))
   .catch(err => console.error("❌ Cloudinary error:", err));
+//yxcyxcxyc
