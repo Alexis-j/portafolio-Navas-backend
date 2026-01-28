@@ -11,7 +11,6 @@ export const sendContactEmail = async (req, res) => {
   }
 
   try {
-    console.log("📩 Enviando email con Resend:", req.body);
 
     await sendEmail({
       from: `Portafolio Web <${process.env.RESEND_FROM}>`, // Tu dominio verificado
@@ -31,11 +30,9 @@ export const sendContactEmail = async (req, res) => {
       `,
     });
 
-    console.log("✅ Email enviado correctamente");
     res.json({ success: true });
   } catch (error) {
     console.error("❌ Error enviando email:", error);
     res.status(500).json({ error: "Error enviando correo" });
   }
 };
-
