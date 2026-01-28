@@ -1,4 +1,5 @@
 import { Resend } from "resend";
+import { sendEmail } from "../utils/mailer.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -34,3 +35,5 @@ export const sendContactEmail = async (req, res) => {
     res.status(500).json({ error: "Error enviando correo" });
   }
 };
+
+
