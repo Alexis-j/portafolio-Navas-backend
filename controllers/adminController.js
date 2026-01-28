@@ -1,20 +1,16 @@
-import {
-  createAdminDB,
-  findAdminByEmail,
-  findAdminByResetToken,
-  saveResetTokenDB,
-  updatePasswordDB,
-} from "../models/admin.js";
+// controllers/adminController.js
+import { findAdminByEmail, findAdminByResetToken, saveResetTokenDB, updatePasswordDB } from "../models/admin.js";
 
 import { Resend } from "resend";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 // LOGIN
 export const login = async (req, res) => {
   const { email, password } = req.body;
-
   try {
     const admin = await findAdminByEmail(email);
     if (!admin) return res.status(400).json({ error: "Usuario no encontrado" });
@@ -35,33 +31,9 @@ export const login = async (req, res) => {
   }
 };
 
-// CREAR ADMIN
-export const createAdmin = async (req, res) => {
-  const { nombre, email, password } = req.body;
-
-  if (!nombre || !email || !password)
-    return res.status(400).json({ error: "Todos los campos son requeridos" });
-
-  try {
-    const exists = await findAdminByEmail(email);
-    if (exists) return res.status(400).json({ error: "Email ya registrado" });
-
-    const hashed = await bcrypt.hash(password, 10);
-    const admin = await createAdminDB(nombre, email, hashed);
-
-    res.json({ message: "Admin creado ✅", admin });
-  } catch (err) {
-    console.error("Error en createAdmin:", err);
-    res.status(500).json({ error: "Error del servidor" });
-  }
-};
-
-// SOLICITAR RESET DE CONTRASEÑA
-  const resend = new Resend(process.env.RESEND_API_KEY);
-
+// REQUEST PASSWORD RESET
 export const requestPasswordReset = async (req, res) => {
   const { email } = req.body;
-
   try {
     const admin = await findAdminByEmail(email);
     if (!admin) return res.status(404).json({ error: "Admin no encontrado" });
@@ -71,34 +43,32 @@ export const requestPasswordReset = async (req, res) => {
 
     await saveResetTokenDB(admin.id, token, expiration);
 
-    const resetUrl = `${process.env.FRONTEND_URL}/admin/reset-password/${token}`;
-
-    console.log("📩 Enviando reset password a:", admin.email);
+    // Usar dominio público en producción
+    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/admin/reset-password/${token}`;
 
     await resend.emails.send({
-      from: "Portafolio Fotógrafo <onboarding@resend.dev>",
+      from: "contact@andreynavasphotography.com <onboarding@resend.dev>",
       to: admin.email,
       subject: "Recuperación de contraseña",
       html: `
         <p>Hola ${admin.nombre},</p>
         <p>Para cambiar tu contraseña, haz click en el siguiente enlace:</p>
-        <p><a href="${resetUrl}">${resetUrl}</a></p>
+        <a href="${resetUrl}">${resetUrl}</a>
         <p>Este enlace expirará en 1 hora.</p>
       `,
     });
 
+    console.log("✅ Email de reset enviado a:", admin.email);
     res.json({ message: "Correo de recuperación enviado ✅" });
   } catch (err) {
     console.error("❌ Error en requestPasswordReset:", err);
-    res.status(500).json({ error: "Error al enviar correo" });
+    res.status(500).json({ error: "Error al enviar correo", details: err.message });
   }
 };
 
-
-// RESET DE CONTRASEÑA
+// RESET PASSWORD
 export const resetPassword = async (req, res) => {
   const { token, newPassword } = req.body;
-
   try {
     const admin = await findAdminByResetToken(token);
     if (!admin) return res.status(400).json({ error: "Token inválido o expirado" });
@@ -112,3 +82,27 @@ export const resetPassword = async (req, res) => {
     res.status(500).json({ error: "Error al actualizar contraseña" });
   }
 };
+
+// CREAR ADMIN
+
+export const createAdmin = async (req, res) => {
+  const { nombre, email, password } = req.body;
+
+      if (!nombre || !email || !password)
+
+        return res.status(400).json({ error: "Todos los campos son requeridos" });
+
+          try {     const exists = await findAdminByEmail(email);
+
+            if (exists) return res.status(400).json({ error: "Email ya registrado" });
+
+            const hashed = await bcrypt.hash(password, 10);
+
+            const admin = await createAdminDB(nombre, email, hashed);
+
+            res.json({ message: "Admin creado ✅", admin });   } catch (err) {
+              
+              console.error("Error en createAdmin:", err);
+              res.status(500).json({ error: "Error del servidor" });
+    }
+  };
