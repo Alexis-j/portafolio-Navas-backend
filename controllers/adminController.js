@@ -69,28 +69,29 @@ export const requestPasswordReset = async (req, res) => {
 
     await saveResetTokenDB(admin.id, token, expiration);
 
-    const resetUrl = `http://localhost:3000/admin/reset-password/${token}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/admin/reset-password/${token}`;
 
-    const transporter = createTransporter(); 
+    console.log("📩 Enviando reset password a:", admin.email);
 
-    await transporter.sendMail({
-      from: `"Portafolio Fotógrafo" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: "Portafolio Fotógrafo <onboarding@resend.dev>",
       to: admin.email,
       subject: "Recuperación de contraseña",
       html: `
         <p>Hola ${admin.nombre},</p>
         <p>Para cambiar tu contraseña, haz click en el siguiente enlace:</p>
-        <a href="${resetUrl}">${resetUrl}</a>
+        <p><a href="${resetUrl}">${resetUrl}</a></p>
         <p>Este enlace expirará en 1 hora.</p>
       `,
     });
 
     res.json({ message: "Correo de recuperación enviado ✅" });
   } catch (err) {
-    console.error("Error en requestPasswordReset:", err);
+    console.error("❌ Error en requestPasswordReset:", err);
     res.status(500).json({ error: "Error al enviar correo" });
   }
 };
+
 
 // RESET DE CONTRASEÑA
 export const resetPassword = async (req, res) => {
