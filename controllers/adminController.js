@@ -6,6 +6,7 @@ import {
   updatePasswordDB,
 } from "../models/admin.js";
 
+import { Resend } from "resend";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
@@ -56,6 +57,9 @@ export const createAdmin = async (req, res) => {
 };
 
 // SOLICITAR RESET DE CONTRASEÑA
+import { Resend } from "resend";
+  const resend = new Resend(process.env.RESEND_API_KEY);
+
 export const requestPasswordReset = async (req, res) => {
   const { email } = req.body;
 
