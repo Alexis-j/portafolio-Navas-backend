@@ -9,7 +9,7 @@ export const sendContactEmail = async (req, res) => {
     console.log("📩 Contact form:", req.body);
 
     await resend.emails.send({
-      from: "contact@andreynavasphotography.com <onboarding@resend.dev>", // funciona sin dominio
+      from: "Andrey <contact@andreynavasphotography.com >", // funciona sin dominio
       to: process.env.EMAIL_TO,
       subject: `Nuevo mensaje de ${name}`,
       html: `

@@ -88,21 +88,17 @@ export const resetPassword = async (req, res) => {
 export const createAdmin = async (req, res) => {
   const { nombre, email, password } = req.body;
 
-      if (!nombre || !email || !password)
+  if (!nombre || !email || !password)
+    return res.status(400).json({ error: "Todos los campos son requeridos" });
 
-        return res.status(400).json({ error: "Todos los campos son requeridos" });
+  try {     const exists = await findAdminByEmail(email);
+    if (exists) return res.status(400).json({ error: "Email ya registrado" });
 
-          try {     const exists = await findAdminByEmail(email);
+      const hashed = await bcrypt.hash(password, 10);
+      const admin = await createAdminDB(nombre, email, hashed);
 
-            if (exists) return res.status(400).json({ error: "Email ya registrado" });
-
-            const hashed = await bcrypt.hash(password, 10);
-
-            const admin = await createAdminDB(nombre, email, hashed);
-
-            res.json({ message: "Admin creado ✅", admin });   } catch (err) {
-              
-              console.error("Error en createAdmin:", err);
-              res.status(500).json({ error: "Error del servidor" });
+      res.json({ message: "Admin creado ✅", admin });   } catch (err) {
+        console.error("Error en createAdmin:", err);
+        res.status(500).json({ error: "Error del servidor" });
     }
   };
