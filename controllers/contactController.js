@@ -1,4 +1,6 @@
-import { createTransporter } from "../utils/mailer.js";
+import { Resend } from "resend";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export const sendContactEmail = async (req, res) => {
   const { name, email, phone, sessionType, message } = req.body;
@@ -8,10 +10,10 @@ export const sendContactEmail = async (req, res) => {
   }
 
   try {
-    const transporter = createTransporter();
+    console.log("📩 Enviando email con Resend:", req.body);
 
-    await transporter.sendMail({
-      from: `"Portafolio Web" <${process.env.EMAIL_USER}>`,
+    await resend.emails.send({
+      from: "Portafolio Web <onboarding@resend.dev>",
       to: process.env.EMAIL_TO,
       subject: `Nueva consulta — ${sessionType || "General"}`,
       html: `
@@ -25,7 +27,8 @@ export const sendContactEmail = async (req, res) => {
       `,
     });
 
-    res.status(200).json({ success: true, message: "Correo enviado correctamente" });
+    console.log("✅ Email enviado correctamente");
+    res.json({ success: true });
   } catch (error) {
     console.error("❌ Error enviando email:", error);
     res.status(500).json({ error: "Error enviando correo" });
