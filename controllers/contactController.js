@@ -13,9 +13,10 @@ export const sendContactEmail = async (req, res) => {
   try {
     console.log("📩 Enviando email con Resend:", req.body);
 
-    await resend.emails.send({
-      from: "Portafolio Web <onboarding@resend.dev>",
+    await sendEmail({
+      from: `Portafolio Web <${process.env.RESEND_FROM}>`, // Tu dominio verificado
       to: process.env.EMAIL_TO,
+      reply_to: email, // Para que el reply vaya al usuario
       subject: `Nueva consulta — ${sessionType || "General"}`,
       html: `
         <h3>¡Nueva consulta recibida!</h3>
@@ -25,6 +26,8 @@ export const sendContactEmail = async (req, res) => {
         <p><strong>Tipo de sesión:</strong> ${sessionType || "No especificado"}</p>
         <p><strong>Mensaje:</strong></p>
         <p>${message}</p>
+        <hr />
+        <p>Enviado desde el formulario de contacto de navasphotography.com</p>
       `,
     });
 
@@ -35,5 +38,4 @@ export const sendContactEmail = async (req, res) => {
     res.status(500).json({ error: "Error enviando correo" });
   }
 };
-
 
