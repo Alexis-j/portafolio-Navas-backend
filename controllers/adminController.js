@@ -7,7 +7,6 @@ import {
 } from "../models/admin.js";
 
 import bcrypt from "bcrypt";
-import { createTransporter } from "../utils/mailer.js";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
 
