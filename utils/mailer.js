@@ -1,29 +1,52 @@
+// utils/mailer.js
 import { Resend } from "resend";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+if (!process.env.RESEND_API_KEY) {
+  throw new Error("❌ RESEND_API_KEY no definido en .env");
+}
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
-export const sendContactEmail = async (req, res) => {
+/**
+ * sendEmail - envia un email usando Resend
+ * @param {Object} options
+ * @param {string} options.from - Email de origen (debe estar verificado en Resend)
+ * @param {string} options.to - Email destino
+ * @param {string} options.subject - Asunto
+ * @param {string} options.html - Contenido HTML
+ */
+export const sendEmail = async ({ from, to, subject, html }) => {
   try {
-    const { name, email, message } = req.body;
-
-    console.log("📩 Contact form:", req.body);
-
-    await resend.emails.send({
-      from: "Andrey <contact@andreynavasphotography.com >", // funciona sin dominio
-      to: process.env.EMAIL_TO,
-      subject: `Nuevo mensaje de ${name}`,
-      html: `
-        <h3>Nuevo mensaje</h3>
-        <p><b>Nombre:</b> ${name}</p>
-        <p><b>Email:</b> ${email}</p>
-        <p>${message}</p>
-      `,
+    const result = await resend.emails.send({
+      from: from || process.env.RESEND_FROM,
+      to,
+      subject,
+      html,
     });
-
-    console.log("✅ Email enviado");
-    res.json({ ok: true });
-  } catch (error) {
-    console.error("❌ Error enviando email:", error);
-    res.status(500).json({ error: "No se pudo enviar el email" });
+    console.log("✅ Email enviado:", result);
+    return result;
+  } catch (err) {
+    console.error("❌ Error enviando email:", err);
+    throw err;
   }
 };
+
+// Función de prueba rápida (puedes ejecutar node utils/mailer.js)
+if (process.argv[2] === "test") {
+  (async () => {
+    try {
+      await sendEmail({
+        from: process.env.RESEND_FROM,
+        to: process.env.EMAIL_TO,
+        subject: "Prueba de Resend",
+        html: "<p>Hola, esto es una prueba ✅</p>",
+      });
+      console.log("✅ Test email enviado correctamente");
+    } catch (err) {
+      console.error("❌ Test email falló:", err.message);
+    }
+  })();
+}

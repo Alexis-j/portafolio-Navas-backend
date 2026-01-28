@@ -5,6 +5,7 @@ import { Resend } from "resend";
 import bcrypt from "bcrypt";
 import crypto from "crypto";
 import jwt from "jsonwebtoken";
+import { sendEmail } from "../utils/mailer.js";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -34,20 +35,20 @@ export const login = async (req, res) => {
 // REQUEST PASSWORD RESET
 export const requestPasswordReset = async (req, res) => {
   const { email } = req.body;
+
   try {
     const admin = await findAdminByEmail(email);
     if (!admin) return res.status(404).json({ error: "Admin no encontrado" });
 
     const token = crypto.randomBytes(32).toString("hex");
-    const expiration = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+    const expiration = new Date(Date.now() + 60 * 60 * 1000);
 
     await saveResetTokenDB(admin.id, token, expiration);
 
-    // Usar dominio público en producción
-    const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/admin/reset-password/${token}`;
+    const resetUrl = `${process.env.FRONTEND_URL}/admin/reset-password/${token}`;
 
-    await resend.emails.send({
-      from: "contact@andreynavasphotography.com <onboarding@resend.dev>",
+    await sendEmail({
+      from: process.env.RESEND_FROM,
       to: admin.email,
       subject: "Recuperación de contraseña",
       html: `
@@ -58,7 +59,6 @@ export const requestPasswordReset = async (req, res) => {
       `,
     });
 
-    console.log("✅ Email de reset enviado a:", admin.email);
     res.json({ message: "Correo de recuperación enviado ✅" });
   } catch (err) {
     console.error("❌ Error en requestPasswordReset:", err);
